@@ -46,17 +46,19 @@ interface ActivityItem {
 Run these commands and parse the JSON output:
 
 ```bash
-# PRs authored
-gh pr list --author @me --search "created:>=YYYY-MM-DD" --json number,title,url,state,createdAt,mergedAt --limit 100
+# PRs merged by me (searches across ALL repos/orgs)
+gh search prs --author=@me --merged-at="YYYY-MM-DD..YYYY-MM-DD" --json number,title,url,repository,closedAt --limit 50
 
 # PRs where you were a reviewer
-gh pr list --search "reviewed-by:@me created:>=YYYY-MM-DD" --json number,title,url,createdAt --limit 100
+gh search prs --reviewed-by=@me --merged-at="YYYY-MM-DD..YYYY-MM-DD" --json number,title,url,repository,closedAt --limit 50
 
 # Recent commits (from events API)
 gh api "/users/$(gh api user --jq .login)/events?per_page=100" --jq '[.[] | select(.type == "PushEvent")]'
 ```
 
-**ID patterns:** `github-pr-{number}`, `github-commit-{sha}`, `github-issue-{number}`
+**Important:** Use `gh search prs` (not `gh pr list`) to find PRs across all repos. `gh pr list` only searches the current repo. For merged PRs, use `--merged-at` with a date range. For each merged PR, set `type` to `pr_merged`. For reviewed PRs that you didn't author, set `type` to `pr_reviewed`.
+
+**ID patterns:** `github-pr-{repo.nameWithOwner}-{number}`, `github-commit-{sha}`, `github-issue-{number}`
 **Types:** `pr_created`, `pr_merged`, `pr_reviewed`, `commit`, `issue_created`
 
 ---
