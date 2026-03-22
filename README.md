@@ -29,45 +29,38 @@ GSD Report collects your activity from up to 9 data sources, analyzes it for com
 | **Codex** | Sessions, models used, tokens consumed, projects |
 | **GitHub Copilot** | CLI sessions and VS Code chat sessions |
 
-## Quick Start (Recommended)
+## Quick Start
 
-The fastest way to get started is with the **Claude Code skill** approach. If you use Claude Code with MCP integrations, you can generate a full report with a single command -- no API keys needed for most sources.
-
-### Prerequisites
-
-- [Claude Code](https://claude.ai/claude-code) with MCP integrations (Slack, Jira, Gmail, Calendar, Linear)
-- [GitHub CLI](https://cli.github.com/) authenticated (`gh auth login`)
-- PostgreSQL (`brew install postgresql@18 && brew services start postgresql@18`)
-- Node.js 20+
-
-### Setup
+Clone the repo and let Claude Code handle the rest:
 
 ```bash
-# Clone and install
 git clone <your-repo-url> gsd-report
 cd gsd-report
-npm install
-
-# Create and configure the database
-createdb gsd_report
-echo 'DATABASE_URL="postgresql://'"$(whoami)"'@localhost:5432/gsd_report?schema=public"' > .env
-npx prisma migrate dev --name init
-
-# Start the app
-npm run dev
 ```
 
-### Generate a Report
-
-In Claude Code, from the project directory:
+Then in Claude Code, run:
 
 ```
-/gsd              # Last 7 days
-/gsd last 2 weeks # Last 2 weeks
-/gsd last month   # Last 30 days
+/setup
+```
+
+The `/setup` skill will interactively walk you through everything -- checking prerequisites, installing dependencies, creating the database, running migrations, and verifying the app starts. It checks what's already installed and only sets up what's missing.
+
+Once setup is complete, generate your first report:
+
+```
+/gsd
 ```
 
 Then open [http://localhost:3000](http://localhost:3000) to view your dashboard.
+
+### Other date ranges
+
+```
+/gsd last 2 weeks
+/gsd last month
+/gsd 2026-03-01 to 2026-03-15
+```
 
 ## Setup Guides
 
