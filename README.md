@@ -86,6 +86,18 @@ Both approaches write to the same database and can be used together.
 - AI conversation content is not stored -- only session metadata (project, duration, tools used)
 - All data stays in your local PostgreSQL database
 
+## Agent Compatibility
+
+The `/setup` and `/gsd` skills are written to be agent-agnostic -- they describe _what to do_ rather than naming specific tools, so any AI coding agent should be able to follow them.
+
+| Agent | Status |
+|-------|--------|
+| **Claude Code** | Tested and working |
+| **Codex** | Untested -- should work, contributions welcome |
+| **GitHub Copilot** | Untested -- should work, contributions welcome |
+
+If you try the skills with Codex, Copilot, or another agent and run into issues, please open an issue or submit a PR with fixes. The skill files are in `.claude/skills/` and the agent entry points are in `AGENTS.md` and `.github/copilot-instructions.md`.
+
 ## Development
 
 ```bash
