@@ -1,16 +1,16 @@
-import { prisma } from '@/lib/db';
+import { prisma, productionPrisma } from '@/lib/db';
+import { PrismaClient } from '@/generated/prisma/client';
 import { ActivityItem, AnalysisResult, DateRange } from '@/lib/types';
 
-export async function upsertActivities(items: ActivityItem[]): Promise<number> {
+async function upsertActivitiesTo(db: InstanceType<typeof PrismaClient>, items: ActivityItem[]): Promise<number> {
   let count = 0;
 
-  // Batch upserts in chunks to avoid overwhelming the DB
   const chunkSize = 50;
   for (let i = 0; i < items.length; i += chunkSize) {
     const chunk = items.slice(i, i + chunkSize);
-    const results = await prisma.$transaction(
+    const results = await db.$transaction(
       chunk.map((item) =>
-        prisma.activity.upsert({
+        db.activity.upsert({
           where: { sourceId: item.id },
           create: {
             sourceId: item.id,
@@ -33,6 +33,18 @@ export async function upsertActivities(items: ActivityItem[]): Promise<number> {
       )
     );
     count += results.length;
+  }
+
+  return count;
+}
+
+export async function upsertActivities(items: ActivityItem[]): Promise<number> {
+  const count = await upsertActivitiesTo(prisma, items);
+
+  if (productionPrisma) {
+    await upsertActivitiesTo(productionPrisma, items).catch((err) => {
+      console.error('Failed to replicate activities to production:', err);
+    });
   }
 
   return count;
@@ -68,7 +80,8 @@ export async function getActivities(dateRange: DateRange): Promise<ActivityItem[
   });
 }
 
-export async function saveReport(
+async function saveReportTo(
+  db: InstanceType<typeof PrismaClient>,
   dateRange: DateRange,
   analysis: AnalysisResult,
   activityCount: number
@@ -86,25 +99,40 @@ export async function saveReport(
     activityCount,
   };
 
-  // Find existing report for the same date range and update it, or create new
-  const existing = await prisma.report.findFirst({
+  const existing = await db.report.findFirst({
     where: { startDate, endDate },
     orderBy: { createdAt: 'desc' },
   });
 
   if (existing) {
-    const report = await prisma.report.update({
+    const report = await db.report.update({
       where: { id: existing.id },
       data,
     });
     return { id: report.id };
   }
 
-  const report = await prisma.report.create({
+  const report = await db.report.create({
     data: { startDate, endDate, ...data },
   });
 
   return { id: report.id };
+}
+
+export async function saveReport(
+  dateRange: DateRange,
+  analysis: AnalysisResult,
+  activityCount: number
+): Promise<{ id: number }> {
+  const result = await saveReportTo(prisma, dateRange, analysis, activityCount);
+
+  if (productionPrisma) {
+    await saveReportTo(productionPrisma, dateRange, analysis, activityCount).catch((err) => {
+      console.error('Failed to replicate report to production:', err);
+    });
+  }
+
+  return result;
 }
 
 export interface ReportSummary {

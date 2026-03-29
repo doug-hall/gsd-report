@@ -16,7 +16,7 @@ vi.mock('@/lib/db', () => {
     },
     $transaction: vi.fn().mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops)),
   };
-  return { prisma: mockPrisma };
+  return { prisma: mockPrisma, productionPrisma: null };
 });
 
 import { prisma } from '@/lib/db';
