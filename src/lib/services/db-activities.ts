@@ -8,31 +8,35 @@ async function upsertActivitiesTo(db: InstanceType<typeof PrismaClient>, items: 
   const chunkSize = 50;
   for (let i = 0; i < items.length; i += chunkSize) {
     const chunk = items.slice(i, i + chunkSize);
+    // Interactive ($transaction with a callback) so we can raise the timeout
+    // beyond Prisma's 5s default — a 50-row upsert against a remote database
+    // (e.g. dual-write to production) routinely exceeds that.
     const results = await db.$transaction(
-      chunk.map((item) =>
-        db.activity.upsert({
-          where: { sourceId: item.id },
-          create: {
-            sourceId: item.id,
-            source: item.source,
-            type: item.type,
-            title: item.title,
-            description: item.description ?? null,
-            url: item.url ?? null,
-            timestamp: new Date(item.timestamp),
-            metadata: { ...item.metadata, _private: item.private ?? false } as never,
-          },
-          update: {
-            title: item.title,
-            description: item.description ?? null,
-            url: item.url ?? null,
-            type: item.type,
-            metadata: { ...item.metadata, _private: item.private ?? false } as never,
-          },
-        })
-      ),
-      // Default Prisma transaction timeout is 5s, which is tight for a 50-row
-      // upsert against a remote database (e.g. dual-write to production).
+      (tx) =>
+        Promise.all(
+          chunk.map((item) =>
+            tx.activity.upsert({
+              where: { sourceId: item.id },
+              create: {
+                sourceId: item.id,
+                source: item.source,
+                type: item.type,
+                title: item.title,
+                description: item.description ?? null,
+                url: item.url ?? null,
+                timestamp: new Date(item.timestamp),
+                metadata: { ...item.metadata, _private: item.private ?? false } as never,
+              },
+              update: {
+                title: item.title,
+                description: item.description ?? null,
+                url: item.url ?? null,
+                type: item.type,
+                metadata: { ...item.metadata, _private: item.private ?? false } as never,
+              },
+            })
+          )
+        ),
       { maxWait: 10_000, timeout: 30_000 }
     );
     count += results.length;
