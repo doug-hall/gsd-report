@@ -14,7 +14,10 @@ vi.mock('@/lib/db', () => {
       findUnique: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
     },
-    $transaction: vi.fn().mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops)),
+    $transaction: vi.fn().mockImplementation(
+      (arg: Promise<unknown>[] | ((tx: typeof mockPrisma) => Promise<unknown>)) =>
+        typeof arg === 'function' ? arg(mockPrisma) : Promise.all(arg)
+    ),
   };
   return { prisma: mockPrisma, productionPrisma: null };
 });
