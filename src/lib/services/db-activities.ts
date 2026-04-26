@@ -30,7 +30,10 @@ async function upsertActivitiesTo(db: InstanceType<typeof PrismaClient>, items: 
             metadata: { ...item.metadata, _private: item.private ?? false } as never,
           },
         })
-      )
+      ),
+      // Default Prisma transaction timeout is 5s, which is tight for a 50-row
+      // upsert against a remote database (e.g. dual-write to production).
+      { maxWait: 10_000, timeout: 30_000 }
     );
     count += results.length;
   }
